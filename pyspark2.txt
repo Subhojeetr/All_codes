@@ -1,0 +1,135 @@
+Links:
+https://github.com/PacktPublishing/PySpark-Cookbook/tree/master/Chapter02
+
+###########################################################################################################################################
+
+airports.map(lambda c: c[2]).distinct().take(5)
+flights = sc.textFile('/databricks-datasets/flights/departuredelays.csv').map(lambda line: line.split(","))
+
+
+sample(withReplacement, fraction, seed=None) --> Returns a sampled subset of this DataFrame.
+flights.map(lambda c: c[3]).sample(False, 0.001, 123).take(5)
+
+
+from pyspark.sql.functions import col
+df1.alias('a').join(df2.alias('b'),col('b.id') == col('a.id')).select([col('a.'+xx) for xx in a.columns] + [col('b.other1'),col('b.other2')])
+df1.join(df2, df1.id == df2.id).select('df1.*', 'df2.other')
+
+____________________________________________________________________________________________________
+*******JOINS*******
+ta = TableA.alias('ta')
+tb = TableB.alias('tb')
+____________________________________________________________________________________________________
+
+inner_join = ta.join(tb, ta.name == tb.name)
+inner_join.show()
+
+left_join = ta.join(tb, ta.name == tb.name,how='left') # Could also use 'left_outer'
+left_join.show()
+
+right_join = ta.join(tb, ta.name == tb.name,how='right') # Could also use 'right_outer'
+right_join.show()
+
+full_outer_join = ta.join(tb, ta.name == tb.name,how='full') # Could also use 'full_outer'
+full_outer_join.show()
+
+df.crossJoin(df2.select("height")).select("age", "name", "height").collect()
+
+###########################################################################################################################################
+
+zipWithIndex simply returns a tuple of (item,index) like so:
+rdd.zipWithIndex().collect()
+> [([1, 2], 0), ([1, 4], 1)]
+
+rdd.zipWithIndex().filter(lambda (key,index) : key == [1,2]).
+map(lambda (key,index): index).collect()
+> [0]
+
+# zipWithIndex
+#   Skip header row by 
+#   - filter out row 0
+#   - extract only row info
+ac.zipWithIndex()\
+  .filter(lambda (row, idx): idx > 0)\
+  .map(lambda (row, idx): row)\
+  .take(5)
+
+###########################################################################################################################################
+
+myRDD.sortByKey(ascending=True).map(lambda (k, v): v).collect()
+or
+myRDD.sortByKey(ascending=True).values().collect()
+
+###########################################################################################################################################
+
+flights.zipWithIndex()\
+  .filter(lambda (row, idx): idx > 0)\
+  .map(lambda (row, idx): row)\
+  .map(lambda c: (c[3], int(c[1])))\
+  .reduceByKey(lambda x, y: x + y)\
+  .sortByKey()\
+  .take(50)
+  
+  
+ 
+flightsDF = spark.read.options(header='true', inferSchema='true').csv('/databricks-datasets/flights/departuredelays.csv')
+flightsDF.createOrReplaceTempView("flightsDF")
+
+###########################################################################################################################################
+
+
+mapPartitions(func, preservesPartitioning=False)
+
+mapPartitionsWithIndex(func)
+
+
+######################################################################################################################################
+
+union(a different rdd)
+Simple.  Return the union of two RDDs
+
+>>> one = sc.parallelize(range(1,10))
+>>> two = sc.parallelize(range(10,21))
+>>> one.union(two).collect()
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+intersection(a different rdd)
+Again, simple.  Similar to union but return the intersection of two RDDs
+
+>>> one = sc.parallelize(range(1,10))
+>>> two = sc.parallelize(range(5,15))
+>>> one.intersection(two).collect()
+[5, 6, 7, 8, 9]
+
+
+distinct([numTasks])
+Another simple one.  Return a new RDD with distinct elements within a source RDD
+
+>>> parallel = sc.parallelize(range(1,9))
+>>> par2 = sc.parallelize(range(5,15))
+
+>>> parallel.union(par2).distinct().collect()
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+
+groupByKey([numTasks])
+“When called on a dataset of (K, V) pairs, returns a dataset of (K, Iterable<V>) pairs. ”
+
+The following groups all names to counties in which they appear over the years.
+
+>>> rows = baby_names.map(lambda line: line.split(","))
+>>> namesToCounties = rows.map(lambda n: (str(n[1]),str(n[2]) )).groupByKey()
+>>> namesToCounties.map(lambda x : {x[0]: list(x[1])}).collect()
+
+[{'GRIFFIN': ['ERIE',
+   'ONONDAGA',
+   'NEW YORK',
+   'ERIE',
+   'SUFFOLK',
+   'MONROE',
+   'NEW YORK',
+   ...]}]
+   
+   
+   
+######################################################################################################################################
+

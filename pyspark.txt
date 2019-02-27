@@ -1,0 +1,101 @@
+map :It returns a new RDD by applying a function to each element of the RDD.   Function in map can return only one item.
+
+flatMap: Similar to map, it returns a new RDD by applying  a function to each element of the RDD, but output is flattened.
+Also, function in flatMap can return a list of elements (0 or more)
+
+Example1:- 
+sc.parallelize([3,4,5]).map(lambda x: range(1,x)).collect()
+Output:
+[[1, 2], [1, 2, 3], [1, 2, 3, 4]]
+
+sc.parallelize([3,4,5]).flatMap(lambda x: range(1,x)).collect()
+Output:  notice o/p is flattened out in a single list
+[1, 2, 1, 2, 3, 1, 2, 3, 4] 
+
+Example 2:
+
+sc.parallelize([3,4,5]).map(lambda x: [x,  x*x]).collect() 
+Output:
+[[3, 9], [4, 16], [5, 25]]
+
+sc.parallelize([3,4,5]).flatMap(lambda x: [x, x*x]).collect() 
+Output: notice flattened list
+[3, 9, 4, 16, 5, 25]
+
+Example 3: 
+There is a file greetings.txt in HDFS with following lines:
+Good Morning
+Good Evening
+Good Day
+Happy Birthday
+Happy New Year
+
+
+lines = sc.textFile("greetings.txt")
+lines.map(lambda line: line.split()).collect()
+Output:-
+[['Good', 'Morning'], ['Good', 'Evening'], ['Good', 'Day'], ['Happy', 'Birthday'], ['Happy', 'New', 'Year']]
+
+
+lines.flatMap(lambda line: line.split()).collect()
+Output:-
+['Good', 'Morning', 'Good', 'Evening', 'Good', 'Day', 'Happy', 'Birthday', 'Happy', 'New', 'Year']
+
+lines = sc.textFile("greetings.txt")
+sorted(lines.flatMap(lambda line: line.split()).map(lambda w: (w,1)).reduceByKey(lambda v1, v2: v1+v2).collect())
+
+Output:-
+[('Birthday', 1), ('Day', 1), ('Evening', 1), ('Good', 3), ('Happy', 2), ('Morning', 1), ('New', 1), ('Year', 1)]
+
+RDD: Resilient Distributed Dataset
+________________________________________________________
+myRDD = sc.textFile('/databricks-datasets/flights/airport-codes-na.txt', minPartitions=4, use_unicode=True).map(lambda line: line.split("\t"))
+myRDD.getNumPartitions()
+
+
+airports.filter(lambda c: c[1] == "WA").map(lambda c: (c[0], c[1])).flatMap(lambda x: x).take(10)
+
+DATAFRAMES:
+______________________________________________________________________________________________________________________
+
+myDF = spark.read.csv('/databricks-datasets/flights/departuredelays.csv', header=True, inferSchema=True)
+myDF.rdd.getNumPartitions()
+myDF.printSchema()
+myDF.show()
+**********************************************************************************************************************
+There is inferSchema option to automatically recognize the type of the variable by
+data = sc.read.load(path_to_file,
+                    format='com.databricks.spark.csv', 
+                    header='true', 
+                    inferSchema='true').cache()
+
+fv_df = spark.read.option("header", "true").option("delimiter", "\t").csv('/home/h212957/FacilityView/datapoints_FV.csv', inferSchema=True)
+
+**********************************************************************************************************************
+
+If you are reading multiple binary files with binaryFiles(), the input files will be coalesced into partitions based on the following:
+
+spark.files.maxPartitionBytes, default 128 MB
+spark.files.openCostInBytes, default 4 MB
+spark.default.parallelism
+the total size of your input
+The first three config items are described here. See the commit change above to see the actual calculation.
+
+I had a scenario where I wanted a max of 40 MB per input partition, hence 40 MB per task... to increase parallelism while parsing. (Spark was putting 128 MB into each partition, slowing down my app.) I set spark.files.maxPartitionBytes to 40 M before calling binaryFiles():
+
+spark = SparkSession \
+   .builder \
+   .config("spark.files.maxPartitionBytes", 40*1024*1024)
+
+ ************************************************************************************************************************
+ 
+ >>> spark = SparkSession.builder \
+...     .master("local") \
+...     .appName("Word Count") \
+...     .config("spark.some.config.option", "some-value") \
+...     .getOrCreate()
+ 
+Defination:
+________________________________________________________
+use_unicode= If use_unicode is False, the strings will be kept as str (encoding as utf-8), which is faster and smaller than unicode.
+defaultMinPartitions == Default min number of partitions for Hadoop RDDs when not given by user
