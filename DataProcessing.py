@@ -35,7 +35,7 @@ class DataPreProcessing():
         return is_noise
 
     def __call__(self):
-        add_List=['']
+        add_List=['server']
         remove_List=['not','no']
         for w in add_List:
             DataPreProcessing.nlp.vocab[w].is_stop = True
